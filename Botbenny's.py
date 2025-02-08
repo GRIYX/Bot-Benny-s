@@ -5,7 +5,7 @@ import datetime
 import json
 import os
 from dotenv import load_dotenv
-from keep_alive import keep_alive
+# from keep_alive import keep_alive
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -181,5 +181,5 @@ async def setup(ctx):
     else:
         await ctx.send("🚨 Erreur : Salon d'historique introuvable. Vérifie l'ID !")
 
-keep_alive()
+# keep_alive()
 bot.run(token=token)
