@@ -154,13 +154,7 @@ async def temps_service(ctx, membre: discord.Member = None):
         await ctx.send(f"❌ {membre.mention} n'a jamais pris de service.")
         return
 
-    for session in service_data[user_id]:  
-    start_time = datetime.datetime.strptime(session["start_time"], "%Y-%m-%d %H:%M:%S")
-    end_time = session["end_time"]
-
-    if end_time:
-        end_time = datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
-        total_duration += (end_time - start_time)
+    start_time = datetime.datetime.strptime(service["start_time"], "%Y-%m-%d %H:%M:%S")
 
     end_time_str = service_data[user_id]["end_time"]
 
