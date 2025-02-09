@@ -36,13 +36,11 @@ class ServiceView(discord.ui.View):
             await interaction.response.send_message("🚨 Tu es déjà en service ! Termine-le d'abord.", ephemeral=True)
             return
 
-            if user_id not in service_data:
-            service_data[user_id] = []
-    
-            service_data[user_id].append({
-            "start_time": now,
-            "end_time": None
-            })
+            service_data[user_id] = {
+    "name": interaction.user.name,
+    "start_time": now,
+    "end_time": None
+}
 
 
         await interaction.response.send_message(f"✅ {interaction.user.mention} a commencé son service à {now} !", ephemeral=True)
@@ -59,7 +57,7 @@ class ServiceView(discord.ui.View):
             return
 
         # Met à jour la fin du service
-        service_data[user_id][-1]["end_time"] = now
+        service_data[user_id]["end_time"] = now
 
         await interaction.response.send_message(f"🛑 {interaction.user.mention} a terminé son service à {now} !", ephemeral=True)
         await update_history(interaction)  # Mise à jour de l'historique
@@ -142,32 +140,6 @@ async def on_ready():
                     pass  # Ignore les erreurs si le message n'est pas trouvé
 
     print("⚠ Aucun message trouvé, utilise !setup pour recréer les boutons.")
-
-@bot.command()
-async def service_time(ctx, member: discord.Member = None):
-    """Affiche le temps total passé en service par un utilisateur."""
-    member = member or ctx.author  # Si aucun membre n'est spécifié, prend l'auteur
-    user_id = member.id
-
-    if user_id not in service_data:
-        await ctx.send(f"❌ {member.mention} n'a aucun service enregistré.")
-        return
-
-    total_duration = datetime.timedelta()  # Initialise un temps total à 0
-
-    for session in service_data[user_id]:  # Parcours toutes les sessions
-        start_time = datetime.datetime.strptime(session["start_time"], "%Y-%m-%d %H:%M:%S")
-        end_time = session["end_time"]
-
-        if end_time:  # Vérifie si le service est terminé
-            end_time = datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
-            total_duration += (end_time - start_time)
-
-    # Convertit en heures, minutes et secondes
-    hours, remainder = divmod(total_duration.total_seconds(), 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    await ctx.send(f"⏳ {member.mention} a passé un total de **{int(hours)}h {int(minutes)}m {int(seconds)}s** en service.")
 
 
 @bot.command()
