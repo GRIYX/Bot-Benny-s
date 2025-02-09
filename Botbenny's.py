@@ -33,10 +33,11 @@ class ServiceView(discord.ui.View):
 
         # Vérifie si l'utilisateur est déjà en service et n'a pas terminé
         if user_id in service_data and service_data[user_id]["end_time"] is None:
-            await interaction.response.send_message("🚨 Tu es déjà en service ! Termine-le d'abord.", ephemeral=True)
-            return
+    await interaction.response.send_message("🚨 Tu es déjà en service ! Termine-le d'abord.", ephemeral=True)
+    return
 
-            service_data[user_id] = {
+# Ce bloc doit être en dehors de la condition
+service_data[user_id] = {
     "name": interaction.user.name,
     "start_time": now,
     "end_time": None
@@ -61,7 +62,7 @@ class ServiceView(discord.ui.View):
 
         await interaction.response.send_message(f"🛑 {interaction.user.mention} a terminé son service à {now} !", ephemeral=True)
         await update_history(interaction)  # Mise à jour de l'historique
-
+        print("Mise à jour de l'historique des services...")  # À ajouter dans update_history
 
 async def update_history(interaction, new_entry=False):
     """Met à jour l'historique ou crée un NOUVEAU message si un service commence."""
@@ -93,17 +94,6 @@ async def update_history(interaction, new_entry=False):
         except:
             history_message = await history_channel.send(embed=history_embed)  # Si erreur, recrée un message
 
-
-
-    # Vérifie si on a un message existant pour l'historique
-    if history_message:
-        try:
-            msg = await history_channel.fetch_message(history_message.id)
-            await msg.edit(embed=history_embed)  # Mise à jour du message
-        except:
-            history_message = await history_channel.send(embed=history_embed)  # Si erreur, recrée le message
-    else:
-        history_message = await history_channel.send(embed=history_embed)
 
 
 SETUP_MESSAGE_FILE = "setup_message.json"
@@ -154,7 +144,7 @@ async def temps_service(ctx, membre: discord.Member = None):
         await ctx.send(f"❌ {membre.mention} n'a jamais pris de service.")
         return
 
-    start_time = datetime.datetime.strptime(service["start_time"], "%Y-%m-%d %H:%M:%S")
+    start_time = datetime.datetime.strptime(service_data[user_id]["start_time"], "%Y-%m-%d %H:%M:%S")
 
     end_time_str = service_data[user_id]["end_time"]
 
