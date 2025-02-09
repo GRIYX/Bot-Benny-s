@@ -34,9 +34,9 @@ class ServiceView(discord.ui.View):
         # Vérifie si l'utilisateur est déjà en service et n'a pas terminé
         if user_id in service_data and service_data[user_id]["end_time"] is None:
     await interaction.response.send_message("🚨 Tu es déjà en service ! Termine-le d'abord.", ephemeral=True)
-    return
+    return  # On sort de la fonction si l'utilisateur est déjà en service
 
-# Ce bloc doit être en dehors de la condition
+# Ce bloc ne doit PAS être à l'intérieur du if
 service_data[user_id] = {
     "name": interaction.user.name,
     "start_time": now,
