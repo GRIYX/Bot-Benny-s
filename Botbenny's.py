@@ -175,6 +175,13 @@ async def temps_service(ctx, membre: discord.Member = None):
 
     await ctx.send(f"🕒 {membre.mention} a été en service pendant {heures}h {minutes}m {secondes}s.")
 
+@bot.command()
+@commands.has_permissions(administrator=True)  # Seuls les admins peuvent l'utiliser
+async def say(ctx, *, message: str):
+    """Envoie un message avec le bot"""
+    await ctx.message.delete()  # Supprime la commande de l’utilisateur
+    await ctx.send(message)
+
 
 @bot.command()
 async def setup(ctx):
