@@ -73,11 +73,15 @@ class ServiceView(discord.ui.View):
         await update_history(interaction)
 
 async def update_history(interaction, new_entry=False):
-    history_channel = bot.get_channel(HISTORIQUE_CHANNEL_ID)
+    """Met à jour l'historique ou crée un NOUVEAU message si un service commence."""
+    global history_message
+    history_channel = bot.get_channel(HISTORIQUE_CHANNEL_ID)  # Récupération du canal
+
     if not history_channel:
         await interaction.response.send_message("🚨 Erreur : Canal d'historique introuvable.", ephemeral=True)
         return
 
+    # **Réinitialise l'embed** pour éviter les doublons
     history_embed = discord.Embed(title="📜 Historique des Services", color=discord.Color.blue())
 
     for user_id, data in service_data.items():
@@ -90,7 +94,16 @@ async def update_history(interaction, new_entry=False):
             inline=False
         )
 
-    await history_channel.send(embed=history_embed)
+    # **Correction : Mettre à jour correctement le message**
+    if history_message:
+        try:
+            msg = await history_channel.fetch_message(history_message.id)
+            await msg.edit(embed=history_embed)  # Met à jour le message existant
+        except discord.NotFound:
+            history_message = await history_channel.send(embed=history_embed)  # Recrée le message si introuvable
+    else:
+        history_message = await history_channel.send(embed=history_embed)  # Crée un nouveau message s'il n'existe pas encore
+
 
 @bot.event
 async def on_ready():
