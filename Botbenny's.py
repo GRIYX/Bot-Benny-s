@@ -7,40 +7,46 @@ import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
 
+# Chargement des variables d'environnement
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv("DISCORD_TOKEN")
 
+# Configuration des permissions du bot
 intents = discord.Intents.default()
-intents.presences = True
-intents.members = True
 intents.message_content = True
+intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-DATA_FILE = "service_data.json"
+# ID du salon d'historique (à remplacer par le bon ID)
+HISTORIQUE_CHANNEL_ID = 1337471552182026310
 
-HISTORIQUE_CHANNEL_ID = 1337471552182026310  # Remplace par l'ID du salon
+# Fichier de sauvegarde des services
+SERVICE_FILE = "services.json"
 
-# Chargement des données depuis le fichier JSON
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
+# Chargement des données de service sauvegardées
+def load_services():
+    if os.path.exists(SERVICE_FILE):
+        with open(SERVICE_FILE, "r") as f:
             return json.load(f)
     return {}
 
-# Sauvegarde des données dans le fichier JSON
-def save_data():
-    with open(DATA_FILE, "w") as f:
+# Sauvegarde des services en cours
+def save_services():
+    with open(SERVICE_FILE, "w") as f:
         json.dump(service_data, f, indent=4)
 
-service_data = load_data()
+# Données des services
+service_data = load_services()
 
-class ServiceView(discord.ui.View):
+
+class ServiceView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="🟢 Prendre son service", style=discord.ButtonStyle.success)
     async def start_service(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_id = str(interaction.user.id)
+        user_id = str(interaction.user.id)  # Stocker l'ID en tant que string
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if user_id in service_data and service_data[user_id]["end_time"] is None:
@@ -52,10 +58,11 @@ class ServiceView(discord.ui.View):
             "start_time": now,
             "end_time": None
         }
-        save_data()
+
+        save_services()  # Sauvegarde des services après modification
 
         await interaction.response.send_message(f"✅ {interaction.user.mention} a commencé son service à {now} !", ephemeral=True)
-        await update_history(interaction, new_entry=True)
+        await log_service(interaction, user_id)
 
     @discord.ui.button(label="🔴 Fin de service", style=discord.ButtonStyle.danger)
     async def end_service(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -67,22 +74,21 @@ class ServiceView(discord.ui.View):
             return
 
         service_data[user_id]["end_time"] = now
-        save_data()
+        save_services()  # Sauvegarde des services après modification
 
         await interaction.response.send_message(f"🛑 {interaction.user.mention} a terminé son service à {now} !", ephemeral=True)
-        await update_history(interaction)
+        await log_service(interaction, user_id)
 
-async def update_history(interaction):
-    """Crée un NOUVEAU message d'historique pour chaque service."""
-    history_channel = bot.get_channel(HISTORIQUE_CHANNEL_ID)  # Récupération du canal
+
+async def log_service(interaction, user_id):
+    """Enregistre un service dans l'historique sous forme d'un message séparé."""
+    history_channel = bot.get_channel(HISTORIQUE_CHANNEL_ID)
 
     if not history_channel:
         await interaction.response.send_message("🚨 Erreur : Canal d'historique introuvable.", ephemeral=True)
         return
 
-    user_id = interaction.user.id
     data = service_data[user_id]
-
     status = "⏳ En service" if data["end_time"] is None else "✅ Terminé"
 
     history_embed = discord.Embed(title="📜 Historique des Services", color=discord.Color.blue())
@@ -94,39 +100,70 @@ async def update_history(interaction):
         inline=False
     )
 
-    # **Créer un NOUVEAU message à chaque mise à jour**
     await history_channel.send(embed=history_embed)
 
 
-    for user_id, data in service_data.items():
-        status = "⏳ En service" if data["end_time"] is None else "✅ Terminé"
-        history_embed.add_field(
-            name=f"👤 {data['name']}",
-            value=f"📅 **Début :** {data['start_time']}\n"
-                  f"🕒 **Fin :** {data['end_time'] if data['end_time'] else '🟡 En cours'}\n"
-                  f"🔄 **Statut :** {status}",
-            inline=False
-        )
+@bot.command()
+async def temps_service(ctx, membre: discord.Member = None):
+    """Affiche le temps total passé en service pour un joueur"""
+    if membre is None:
+        membre = ctx.author
 
-    # **Correction : Mettre à jour correctement le message**
-    if history_message:
-        try:
-            msg = await history_channel.fetch_message(history_message.id)
-            await msg.edit(embed=history_embed)  # Met à jour le message existant
-        except discord.NotFound:
-            history_message = await history_channel.send(embed=history_embed)  # Recrée le message si introuvable
+    user_id = str(membre.id)
+
+    if user_id not in service_data:
+        await ctx.send(f"❌ {membre.mention} n'a jamais pris de service.")
+        return
+
+    start_time = datetime.datetime.strptime(service_data[user_id]["start_time"], "%Y-%m-%d %H:%M:%S")
+    end_time_str = service_data[user_id]["end_time"]
+
+    if end_time_str:
+        end_time = datetime.datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+        total_time = end_time - start_time
     else:
-        history_message = await history_channel.send(embed=history_embed)  # Crée un nouveau message s'il n'existe pas encore
+        total_time = datetime.datetime.now() - start_time
+
+    heures, reste = divmod(total_time.seconds, 3600)
+    minutes, secondes = divmod(reste, 60)
+
+    await ctx.send(f"🕒 {membre.mention} a été en service pendant {heures}h {minutes}m {secondes}s.")
+
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def say(ctx, *, message: str):
+    """Envoie un message avec le bot"""
+    await ctx.message.delete()
+    await ctx.send(message)
+
+
+@bot.command()
+async def setup(ctx):
+    """Commande pour créer le message avec les boutons dans le salon actuel"""
+    embed = discord.Embed(
+        title="📢 Gestion des Services",
+        description="Clique sur un bouton ci-dessous pour prendre ou terminer ton service.",
+        color=discord.Color.green()
+    )
+    await ctx.send(embed=embed, view=ServiceView())
 
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot connecté en tant que {bot.user}")
 
-@bot.command()
-async def setup(ctx):
-    embed = discord.Embed(title="📢 Gestion des Services", description="Clique sur un bouton ci-dessous pour prendre ou terminer ton service.", color=discord.Color.green())
-    await ctx.send(embed=embed, view=ServiceView())
+    # Ajout automatique des boutons sur un message déjà existant (optionnel)
+    for guild in bot.guilds:
+        for channel in guild.text_channels:
+            async for message in channel.history(limit=50):
+                if message.author == bot.user and message.embeds:
+                    await message.edit(view=ServiceView())
+                    print("✅ Boutons restaurés sur un message existant")
+                    return
+
+    print("⚠ Aucun message trouvé, utilise !setup pour recréer les boutons.")
+
 
 keep_alive()
-bot.run(token)
+bot.run(TOKEN)
