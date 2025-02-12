@@ -72,17 +72,31 @@ class ServiceView(discord.ui.View):
         await interaction.response.send_message(f"🛑 {interaction.user.mention} a terminé son service à {now} !", ephemeral=True)
         await update_history(interaction)
 
-async def update_history(interaction, new_entry=False):
-    """Met à jour l'historique ou crée un NOUVEAU message si un service commence."""
-    global history_message
+async def update_history(interaction):
+    """Crée un NOUVEAU message d'historique pour chaque service."""
     history_channel = bot.get_channel(HISTORIQUE_CHANNEL_ID)  # Récupération du canal
 
     if not history_channel:
         await interaction.response.send_message("🚨 Erreur : Canal d'historique introuvable.", ephemeral=True)
         return
 
-    # **Réinitialise l'embed** pour éviter les doublons
+    user_id = interaction.user.id
+    data = service_data[user_id]
+
+    status = "⏳ En service" if data["end_time"] is None else "✅ Terminé"
+
     history_embed = discord.Embed(title="📜 Historique des Services", color=discord.Color.blue())
+    history_embed.add_field(
+        name=f"👤 {data['name']}",
+        value=f"📅 **Début :** {data['start_time']}\n"
+              f"🕒 **Fin :** {data['end_time'] if data['end_time'] else '🟡 En cours'}\n"
+              f"🔄 **Statut :** {status}",
+        inline=False
+    )
+
+    # **Créer un NOUVEAU message à chaque mise à jour**
+    await history_channel.send(embed=history_embed)
+
 
     for user_id, data in service_data.items():
         status = "⏳ En service" if data["end_time"] is None else "✅ Terminé"
