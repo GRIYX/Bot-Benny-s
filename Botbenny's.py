@@ -93,7 +93,7 @@ async def log_service(interaction, user_id):
 
     history_embed = discord.Embed(title="📜 Historique des Services", color=discord.Color.blue())
     history_embed.add_field(
-        name=f"👤 {member.mention}",
+        name=f"👤 {data['name']}",
         value=f"📅 **Début :** {data['start_time']}\n"
               f"🕒 **Fin :** {data['end_time'] if data['end_time'] else '🟡 En cours'}\n"
               f"🔄 **Statut :** {status}",
