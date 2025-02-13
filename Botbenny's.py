@@ -281,5 +281,33 @@ async def ticket_panel(ctx):
 
 # ----------------------------------------------------------------
 
+# ----------------------------------------------------------------
+
+@bot.event
+async def on_member_join(member):
+    """Envoie un message de bienvenue lorsqu'un membre rejoint le serveur."""
+    channel_id_welcome = 1335027849651814441  # Remplace par l'ID du canal de bienvenue
+    welcome_channel = bot.get_channel(channel_id_welcome)
+
+    if welcome_channel:
+        embed = discord.Embed(
+            title="👋 Bienvenue sur le serveur !",
+            description=f"Salut {member.mention}, bienvenue sur **{member.guild.name}** ! 🎉\n\n",
+            color=discord.Color.red()
+        )
+        embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+        
+
+        await welcome_channel.send(embed=embed)
+    
+    # Optionnel : Attribuer un rôle automatiquement
+    role_id_welcome = 1336773743514746952  # Remplace par l'ID du rôle à attribuer
+    role = member.guild.get_role(role_id_welcome)
+    if role:
+        await member.add_roles(role)
+
+
+# ----------------------------------------------------------------
+
 keep_alive()
 bot.run(TOKEN)
