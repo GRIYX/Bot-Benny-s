@@ -27,9 +27,15 @@ SERVICE_FILE = "services.json"
 # Chargement des données de service sauvegardées
 def load_services():
     if os.path.exists(SERVICE_FILE):
-        with open(SERVICE_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(SERVICE_FILE, "r") as f:
+                content = f.read().strip()  # Lire le fichier et retirer les espaces vides
+                return json.loads(content) if content else {}  # Vérifie si le fichier est vide
+        except json.JSONDecodeError:
+            print("⚠ Erreur: Fichier JSON corrompu, réinitialisation des services.")
+            return {}  # Retourne un dictionnaire vide en cas d'erreur
     return {}
+
 
 # Sauvegarde des services en cours
 def save_services():
